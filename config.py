@@ -13,6 +13,8 @@ class Settings(BaseSettings):
 
     ollama_base_url: str = "http://localhost:11434"
     embed_model: str = "nomic-embed-text"
+    llm_model: str = "llama3.2:3b"
+    retrieval_k: int = 3
 
 
 settings = Settings()
