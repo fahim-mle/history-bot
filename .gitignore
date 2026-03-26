@@ -1,0 +1,26 @@
+# Environment
+.env
+.claude
+.codex
+.gemini
+.opencode
+.qwen
+
+# Vector store (large binary files, regeneratable)
+vector_store/
+
+# Ingestion registry (runtime-generated)
+source_registry.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+
+# uv
+.uv/
+
+# Sources
+raw_sources/
