@@ -12,6 +12,7 @@ import logging
 import re
 import tempfile
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import fitz  # pymupdf
@@ -112,12 +113,19 @@ def chunk_text(text: str) -> list[str]:
 # Deduplication registry (tasks 5.1–5.4)
 # ---------------------------------------------------------------------------
 
-def load_registry(path: str) -> dict[str, str]:
+def load_registry(path: str) -> dict:
     """Load source_registry.json; return empty dict if absent."""
     p = Path(path)
     if not p.exists():
         return {}
     return json.loads(p.read_text(encoding="utf-8"))
+
+
+def _registry_hash(entry) -> str:
+    """Extract hash from either old string format or new dict format."""
+    if isinstance(entry, dict):
+        return entry.get("hash", "")
+    return entry  # legacy: bare hash string
 
 
 def save_registry(registry: dict[str, str], path: str) -> None:
@@ -169,36 +177,46 @@ def store_chunks(chunks: list[str], source_path: str, vector_store: Chroma) -> N
 
 def ingest_file(
     path: Path,
-    registry: dict[str, str],
+    registry: dict,
     vector_store: Chroma,
-) -> None:
-    """Parse → clean → chunk → store → update registry for a single file."""
+) -> str:
+    """Parse → clean → chunk → store → update registry for a single file.
+
+    Returns a status string: 'ingested', 'skipped', 'no_chunks', or 'unsupported'.
+    """
     key = str(path)
     current_hash = compute_md5(path)
 
-    if registry.get(key) == current_hash:
+    # Tasks 1.2 & 1.3 — handle both old (str) and new (dict) registry shapes
+    existing = registry.get(key)
+    if existing is not None and _registry_hash(existing) == current_hash:
         log.info("Already ingested (skipping): %s", path)
-        return
+        return "skipped"
 
-    if key in registry:
+    if existing is not None:
         log.info("File changed, re-ingesting: %s", path)
     else:
         log.info("Ingesting new file: %s", path)
 
     raw = parse_document(path)
     if raw is None:
-        return
+        return "unsupported"
 
     cleaned = clean_text(raw)
     chunks = chunk_text(cleaned)
     if not chunks:
         log.warning("No chunks produced for %s — skipping.", path)
-        return
+        return "no_chunks"
 
     log.info("  %d chunks → ChromaDB", len(chunks))
     store_chunks(chunks, key, vector_store)
 
-    registry[key] = current_hash
+    # Task 1.1 — write new dict shape with ingested_at timestamp
+    registry[key] = {
+        "hash": current_hash,
+        "ingested_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+    }
+    return "ingested"
 
 
 # ---------------------------------------------------------------------------
