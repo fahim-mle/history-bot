@@ -5,8 +5,8 @@ Usage:
     python chat.py
 """
 
-import warnings
 import logging
+import warnings
 
 # Import langchain packages first; langchain_classic.__init__ calls
 # surface_langchain_deprecation_warnings() which prepends a "default" filter.
@@ -74,9 +74,9 @@ Standalone question:"""
 )
 
 QA_PROMPT = PromptTemplate.from_template(
-    """You are a knowledgeable assistant that answers questions strictly based \
-on the provided source documents. Do not use any knowledge outside of the \
-context below.
+    """You are a historian. Use the sources below as your primary evidence.
+    Synthesize across them, draw connections, and reason like a historian would.
+Cite your sources. If evidence is insufficient, say so.
 
 If the answer cannot be found in the context, respond with:
 "I don't know based on the available sources."
