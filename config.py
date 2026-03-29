@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     ollama_base_url: str = "http://localhost:11434"
     embed_model: str = "nomic-embed-text"
-    llm_model: str = "llama3.2:3b"
+    llm_model: str = "qwen3.5:latest"
     retrieval_k: int = 5
 
 
